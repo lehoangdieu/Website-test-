@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Nạp tiền</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #1e1e1e;
+      color: white;
+      text-align: center;
+      padding: 20px;
+    }
+    .container {
+      max-width: 400px;
+      margin: auto;
+      background: #2c2c2c;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(255,255,255,0.2);
+    }
+    input, select {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 5px;
+      border: none;
+      background: #444;
+      color: white;
+      text-align: center;
+    }
+    .btn {
+      background: linear-gradient(45deg, #ff416c, #ff4b2b);
+      border: none;
+      padding: 10px;
+      width: 100%;
+      color: white;
+      font-size: 16px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-bottom: 10px;
+    }
+    .btn:hover {
+      background: linear-gradient(45deg, #ff4b2b, #ff416c);
+    }
+    .btn-delete {
+      background: #dc3545;
+    }
+    .btn-delete:hover {
+      background: #c82333;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Nạp tiền vào tài khoản</h1>
+
+  <label>Tên người dùng:</label>
+  <input type="text" id="username" placeholder="Nhập tên của bạn">
+
+  <label>Chọn phương thức thanh toán:</label>
+  <select id="payment-method">
+    <option value="BIDV">Ngân hàng BIDV</option>
+    <option value="TSR">Thẻ Siêu Rẻ</option>
+  </select>
+
+  <label>Nhập số tiền cần nạp:</label>
+  <input type="text" id="amount" placeholder="Nhập số tiền" oninput="formatAmount()">
+
+  <p>Số tiền cần thanh toán: <span id="total-pay">0</span>đ</p>
+  <p>Số tiền nhận được: <span id="total-receive">0</span>đ</p>
+
+  <button class="btn" id="create-btn" onclick="createInvoice()">Tạo hóa đơn</button>
+  <button class="btn btn-delete" id="delete-btn" onclick="deleteInvoice()" style="display:none;">Xóa hóa đơn</button>
+
+  <div id="payment-details" style="display:none;">
+    <h3>Thông tin thanh toán</h3>
+    <p><strong>Ngân hàng:</strong> <span id="bank"></span></p>
+    <p><strong>Số tài khoản:</strong> <span id="account"></span></p>
+    <p><strong>Nội dung:</strong> <span id="content"></span></p>
+    <p><strong>Trạng thái:</strong> <span id="status" style="color: yellow;">Chờ thanh toán...</span></p>
+  </div>
+</div>
+
+<script>
+  // Định dạng số tiền nhập vào, hiển thị dấu chấm
+  function formatAmount() {
+    let amountInput = document.getElementById("amount");
+    let value = amountInput.value.replace(/\D/g, ""); 
+    if (value) {
+      amountInput.value = parseInt(value).toLocaleString("vi-VN");
+    } else {
+      amountInput.value = "";
+    }
+  }
+
+  // Tạo hóa đơn
+  function createInvoice() {
+    let username = document.getElementById("username").value.trim();
+    let amountStr = document.getElementById("amount").value.replace(/\./g, "");
+    let method = document.getElementById("payment-method").value;
+
+    if (!username || !amountStr || parseInt(amountStr) <= 0) {
+      alert("Vui lòng nhập đầy đủ thông tin!");
+      return;
+    }
+
+    let bank, account, owner;
+    if (method === "BIDV") {
+      bank = "BIDV";
+      account = "6354005244";
+      owner = "LE VAN DUAN";
+    } else {
+      bank = "Thẻ Siêu Rẻ";
+      account = "0914270439";
+      owner = "Lehoangdieu";
+    }
+
+    let content = "NAP" + Math.floor(Math.random() * 10000);
+
+    // Cập nhật giao diện
+    document.getElementById("total-pay").innerText = parseInt(amountStr).toLocaleString("vi-VN");
+    document.getElementById("total-receive").innerText = parseInt(amountStr).toLocaleString("vi-VN");
+    document.getElementById("payment-details").style.display = "block";
+    document.getElementById("bank").innerText = bank;
+    document.getElementById("account").innerText = account + " (" + owner + ")";
+    document.getElementById("content").innerText = content;
+    document.getElementById("status").innerHTML = '<span style="color: yellow;">Chờ thanh toán...</span>';
+
+    document.getElementById("create-btn").style.display = "none";
+    document.getElementById("delete-btn").style.display = "inline-block";
+
+    // Tạo object hóa đơn
+    let invoice = {
+      username,
+      bank,
+      account: account + " (" + owner + ")",
+      amount: amountStr,
+      content,
+      status: "Chờ thanh toán"
+    };
+
+    // Lưu vào localStorage cho admin
+    let invoices = JSON.parse(localStorage.getItem("invoices")) || [];
+    invoices.push(invoice);
+    localStorage.setItem("invoices", JSON.stringify(invoices));
+
+    // Lưu hóa đơn hiện tại để load lại khi refresh
+    localStorage.setItem("currentInvoice", JSON.stringify(invoice));
+  }
+
+  // Xóa hóa đơn
+  function deleteInvoice() {
+    // Xóa hóa đơn hiện tại
+    localStorage.removeItem("currentInvoice");
+    document.getElementById("payment-details").style.display = "none";
+    document.getElementById("total-pay").innerText = "0";
+    document.getElementById("total-receive").innerText = "0";
+    document.getElementById("create-btn").style.display = "inline-block";
+    document.getElementById("delete-btn").style.display = "none";
+    
+    // Xóa hóa đơn khỏi danh sách
+    let saved = JSON.parse(localStorage.getItem("invoices")) || [];
+    // Lấy content của hóa đơn vừa hiển thị
+    let content = document.getElementById("content").innerText;
+    // Tìm và xóa hóa đơn tương ứng
+    let updated = saved.filter(item => item.content !== content);
+    localStorage.setItem("invoices", JSON.stringify(updated));
+  }
+
+  // Kiểm tra nếu admin xác nhận thanh toán
+  function checkPaymentStatus() {
+    let confirmedInvoice = JSON.parse(localStorage.getItem("confirmedInvoice"));
+    let current = JSON.parse(localStorage.getItem("currentInvoice"));
+
+    if (confirmedInvoice && current && confirmedInvoice.content === current.content) {
+      // Admin đã xác nhận hóa đơn này
+      document.getElementById("status").innerText = "Đã thanh toán ✅";
+      document.getElementById("status").style.color = "#28a745";
+      // Xóa cờ
+      localStorage.removeItem("confirmedInvoice");
+
+      setTimeout(() => {
+        // Chuyển hướng
+        window.location.href = "https://meowcatstore.site";
+      }, 2000);
+    }
+  }
+
+  // Load hóa đơn nếu có
+  window.onload = function() {
+    let current = JSON.parse(localStorage.getItem("currentInvoice"));
+    if (current) {
+      // Hiển thị lại thông tin
+      document.getElementById("username").value = current.username;
+      document.getElementById("payment-method").value = (current.bank === "BIDV") ? "BIDV" : "TSR";
+      document.getElementById("amount").value = parseInt(current.amount).toLocaleString("vi-VN");
+      document.getElementById("total-pay").innerText = parseInt(current.amount).toLocaleString("vi-VN");
+      document.getElementById("total-receive").innerText = parseInt(current.amount).toLocaleString("vi-VN");
+      
+      document.getElementById("payment-details").style.display = "block";
+      document.getElementById("bank").innerText = current.bank;
+      document.getElementById("account").innerText = current.account;
+      document.getElementById("content").innerText = current.content;
+      document.getElementById("status").innerHTML = '<span style="color: yellow;">Chờ thanh toán...</span>';
+
+      document.getElementById("create-btn").style.display = "none";
+      document.getElementById("delete-btn").style.display = "inline-block";
+    }
+  }
+
+  setInterval(checkPaymentStatus, 2000);
+</script>
+
+</body>
+</html>
