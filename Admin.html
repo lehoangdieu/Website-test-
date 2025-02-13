@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Quản lý hóa đơn</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #1e1e1e;
+      color: white;
+      text-align: center;
+      padding: 20px;
+    }
+    .container {
+      max-width: 700px;
+      margin: auto;
+      background: #2c2c2c;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(255,255,255,0.2);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      border: 1px solid white;
+      padding: 10px;
+    }
+    .btn {
+      padding: 8px 12px;
+      color: white;
+      font-size: 14px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      margin: 2px;
+    }
+    .btn-confirm {
+      background: #28a745;
+    }
+    .btn-delete {
+      background: #dc3545;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Quản lý hóa đơn</h1>
+  <table>
+    <thead>
+      <tr>
+        <th>Tên</th>
+        <th>Ngân hàng</th>
+        <th>Số tiền</th>
+        <th>Nội dung</th>
+        <th>Trạng thái</th>
+        <th>Hành động</th>
+      </tr>
+    </thead>
+    <tbody id="invoice-list"></tbody>
+  </table>
+</div>
+
+<script>
+  function loadInvoices() {
+    let invoices = JSON.parse(localStorage.getItem("invoices")) || [];
+    let tableBody = document.getElementById("invoice-list");
+    tableBody.innerHTML = "";
+
+    if (invoices.length === 0) {
+      tableBody.innerHTML = "<tr><td colspan='6'>Không có hóa đơn nào.</td></tr>";
+      return;
+    }
+
+    invoices.forEach((invoice, index) => {
+      tableBody.innerHTML += `
+        <tr>
+          <td>${invoice.username}</td>
+          <td>${invoice.bank}</td>
+          <td>${parseInt(invoice.amount).toLocaleString("vi-VN")}đ</td>
+          <td>${invoice.content}</td>
+          <td id="status-${index}" style="color: ${invoice.status === 'Đã thanh toán' ? '#28a745' : 'yellow'};">
+            ${invoice.status}
+          </td>
+          <td>
+            <button class="btn btn-confirm" onclick="confirmPayment(${index})">Xác nhận</button>
+            <button class="btn btn-delete" onclick="deleteInvoice(${index})">Xóa</button>
+          </td>
+        </tr>
+      `;
+    });
+  }
+
+  function confirmPayment(index) {
+    let invoices = JSON.parse(localStorage.getItem("invoices")) || [];
+    invoices[index].status = "Đã thanh toán";
+    localStorage.setItem("invoices", JSON.stringify(invoices));
+    document.getElementById(`status-${index}`).innerText = "Đã thanh toán";
+    document.getElementById(`status-${index}`).style.color = "#28a745";
+
+    // Lưu vào confirmedInvoice để người nạp biết
+    localStorage.setItem("confirmedInvoice", JSON.stringify(invoices[index]));
+  }
+
+  function deleteInvoice(index) {
+    let invoices = JSON.parse(localStorage.getItem("invoices")) || [];
+    invoices.splice(index, 1);
+    localStorage.setItem("invoices", JSON.stringify(invoices));
+    loadInvoices();
+  }
+
+  // Cập nhật tự động khi localStorage thay đổi (nếu 2 tab cùng mở)
+  window.addEventListener("storage", (event) => {
+    if (event.key === "invoices") {
+      loadInvoices();
+    }
+  });
+
+  loadInvoices();
+</script>
+
+</body>
+</html>
